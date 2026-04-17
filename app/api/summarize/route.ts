@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const systemPrompt = `You compress ${subject} into a concise rolling summary.
 Keep all key facts, decisions, names, numbers, and questions.
-Be terse — 3–5 sentences max. No preamble.`;
+Be terse — 8–12 sentences max. No preamble.`;
 
   const userMessage = existingSummary
     ? `Existing summary so far:\n${existingSummary}\n\nNew older items to fold in:\n${newContent}\n\nProduce an updated summary that combines both.`
@@ -28,7 +28,7 @@ Be terse — 3–5 sentences max. No preamble.`;
         { role: "user", content: userMessage },
       ],
       temperature: 0.2,
-      max_completion_tokens: 250,
+      max_completion_tokens: 500,
     });
 
     const summary = completion.choices[0]?.message?.content?.trim() ?? "";
