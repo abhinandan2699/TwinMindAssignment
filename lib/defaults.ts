@@ -1,4 +1,6 @@
 export const DEFAULT_ROLE = "Meeting participant";
+export const DEFAULT_MEETING_TYPE = "";
+export const DEFAULT_MEETING_GOAL = "";
 
 export const DEFAULT_SUGGESTION_PROMPT = `You are a real-time meeting copilot helping someone actively participating in a conversation.
 

@@ -9,11 +9,13 @@ import { Suggestion } from "@/components/SuggestionCard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSuggestions } from "@/hooks/useSuggestions";
 import { useChat } from "@/hooks/useChat";
-import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT, DEFAULT_ROLE, SUGGESTION_TYPE_PROMPTS } from "@/lib/defaults";
+import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT, DEFAULT_ROLE, DEFAULT_MEETING_TYPE, DEFAULT_MEETING_GOAL, SUGGESTION_TYPE_PROMPTS } from "@/lib/defaults";
 
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [role, setRole] = useState(DEFAULT_ROLE);
+  const [meetingType, setMeetingType] = useState(DEFAULT_MEETING_TYPE);
+  const [meetingGoal, setMeetingGoal] = useState(DEFAULT_MEETING_GOAL);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextWindow, setContextWindow] = useState(3);
   const [suggestionPrompt, setSuggestionPrompt] = useState(DEFAULT_SUGGESTION_PROMPT);
@@ -28,6 +30,10 @@ export default function Home() {
     if (key) setApiKey(key);
     const r = sessionStorage.getItem("role");
     if (r) setRole(r);
+    const mt = sessionStorage.getItem("meeting_type");
+    if (mt) setMeetingType(mt);
+    const mg = sessionStorage.getItem("meeting_goal");
+    if (mg) setMeetingGoal(mg);
     const win = sessionStorage.getItem("suggestion_context_window");
     if (win) setContextWindow(Number(win));
     const sPrompt = sessionStorage.getItem("suggestion_prompt");
@@ -52,6 +58,16 @@ export default function Home() {
   function saveRole(s: string) {
     setRole(s);
     sessionStorage.setItem("role", s);
+  }
+
+  function saveMeetingType(s: string) {
+    setMeetingType(s);
+    sessionStorage.setItem("meeting_type", s);
+  }
+
+  function saveMeetingGoal(s: string) {
+    setMeetingGoal(s);
+    sessionStorage.setItem("meeting_goal", s);
   }
 
   function saveContextWindow(n: number) {
@@ -98,6 +114,8 @@ export default function Home() {
     contextWindow,
     suggestionPrompt,
     role,
+    meetingType,
+    meetingGoal,
     flushChunk: recorder.flushChunk,
   });
 
@@ -227,6 +245,10 @@ export default function Home() {
         onClose={() => setSettingsOpen(false)}
         role={role}
         onSaveRole={saveRole}
+        meetingType={meetingType}
+        onSaveMeetingType={saveMeetingType}
+        meetingGoal={meetingGoal}
+        onSaveMeetingGoal={saveMeetingGoal}
         contextWindow={contextWindow}
         onSaveContextWindow={saveContextWindow}
         suggestionPrompt={suggestionPrompt}

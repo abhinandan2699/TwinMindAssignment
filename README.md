@@ -41,7 +41,7 @@ npm start
 
 ## How to Use
 
-1. **Enter your API key** — click the gear icon (top right) and paste your Groq API key. Optionally set your role (e.g., "Software engineer in a technical interview").
+1. **Enter your API key** — click the gear icon (top right) and paste your Groq API key. Optionally set your role, meeting type, and meeting goal to sharpen suggestions from the start.
 
 2. **Start recording** — click the microphone button in the Transcript panel. Grant microphone access when prompted.
 
@@ -125,6 +125,8 @@ Open the gear icon (top right) to access the Settings panel.
 |---|---|---|
 | **Groq API Key** | Your Groq API key. Required to use the app. | — |
 | **Your role** | Tells the LLM who you are. Personalizes suggestion framing (e.g. "Product manager at a startup"). | `Meeting participant` |
+| **Meeting type** | Describes the kind of meeting (e.g. "Job interview", "Sales call", "Technical review"). Helps the model pick the right suggestion mix. | _(blank)_ |
+| **Meeting goal** | What you are trying to achieve (e.g. "Close the deal", "Decide on the architecture"). Suggestions are biased toward this outcome. | _(blank)_ |
 | **Context window** | Number of 30-second transcript chunks fed to the suggestions model (1–10). Higher = more context and higher latency. | `3` |
 | **Live suggestions system prompt** | Master system prompt for generating the four suggestion cards. Edit to change tone, format, or focus area. | See `lib/defaults.ts` |
 | **Chat system prompt** | Base system prompt for all free-form chat responses. | See `lib/defaults.ts` |

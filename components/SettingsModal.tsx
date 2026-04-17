@@ -9,6 +9,10 @@ interface Props {
   onClose: () => void;
   role: string;
   onSaveRole: (s: string) => void;
+  meetingType: string;
+  onSaveMeetingType: (s: string) => void;
+  meetingGoal: string;
+  onSaveMeetingGoal: (s: string) => void;
   contextWindow: number;
   onSaveContextWindow: (n: number) => void;
   suggestionPrompt: string;
@@ -32,6 +36,10 @@ export default function SettingsModal({
   onClose,
   role,
   onSaveRole,
+  meetingType,
+  onSaveMeetingType,
+  meetingGoal,
+  onSaveMeetingGoal,
   contextWindow,
   onSaveContextWindow,
   suggestionPrompt,
@@ -49,6 +57,8 @@ export default function SettingsModal({
 }: Props) {
   const [draftKey, setDraftKey] = useState(apiKey);
   const [draftRole, setDraftRole] = useState(role);
+  const [draftMeetingType, setDraftMeetingType] = useState(meetingType);
+  const [draftMeetingGoal, setDraftMeetingGoal] = useState(meetingGoal);
   const [draftWindow, setDraftWindow] = useState(contextWindow);
   const [draftPrompt, setDraftPrompt] = useState(suggestionPrompt);
   const [draftChatPrompt, setDraftChatPrompt] = useState(chatPrompt);
@@ -62,6 +72,8 @@ export default function SettingsModal({
     if (isOpen) {
       setDraftKey(apiKey);
       setDraftRole(role);
+      setDraftMeetingType(meetingType);
+      setDraftMeetingGoal(meetingGoal);
       setDraftWindow(contextWindow);
       setDraftPrompt(suggestionPrompt);
       setDraftChatPrompt(chatPrompt);
@@ -71,11 +83,13 @@ export default function SettingsModal({
       setDraftFactPrompt(factPrompt);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isOpen, apiKey, role, contextWindow, suggestionPrompt, chatPrompt, questionPrompt, talkingPrompt, answerPrompt, factPrompt]);
+  }, [isOpen, apiKey, role, meetingType, meetingGoal, contextWindow, suggestionPrompt, chatPrompt, questionPrompt, talkingPrompt, answerPrompt, factPrompt]);
 
   function handleSave() {
     onSave(draftKey.trim());
     onSaveRole(draftRole.trim() || role);
+    onSaveMeetingType(draftMeetingType.trim());
+    onSaveMeetingGoal(draftMeetingGoal.trim());
     onSaveContextWindow(Math.max(1, Math.min(10, draftWindow)));
     onSaveSuggestionPrompt(draftPrompt.trim() || suggestionPrompt);
     onSaveChatPrompt(draftChatPrompt.trim() || chatPrompt);
@@ -190,6 +204,38 @@ export default function SettingsModal({
             />
             <div style={hint}>
               Helps tailor suggestions to your perspective in the conversation.
+            </div>
+          </label>
+
+          {/* Meeting type */}
+          <label style={{ display: "block" }}>
+            <div style={fieldLabel}>Meeting type</div>
+            <input
+              type="text"
+              value={draftMeetingType}
+              onChange={(e) => setDraftMeetingType(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Job interview, Sales call, Technical review"
+              style={inputStyle}
+            />
+            <div style={hint}>
+              Helps the model pick the right suggestion mix for the context.
+            </div>
+          </label>
+
+          {/* Meeting goal */}
+          <label style={{ display: "block" }}>
+            <div style={fieldLabel}>Meeting goal</div>
+            <input
+              type="text"
+              value={draftMeetingGoal}
+              onChange={(e) => setDraftMeetingGoal(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Close the deal, Decide on the architecture"
+              style={inputStyle}
+            />
+            <div style={hint}>
+              What you are trying to achieve — suggestions will be biased toward this outcome.
             </div>
           </label>
 

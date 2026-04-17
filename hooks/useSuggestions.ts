@@ -11,6 +11,8 @@ interface UseSuggestionsOptions {
   contextWindow: number;
   suggestionPrompt: string;
   role: string;
+  meetingType: string;
+  meetingGoal: string;
   flushChunk: () => void;
 }
 
@@ -23,6 +25,8 @@ export function useSuggestions({
   contextWindow,
   suggestionPrompt,
   role,
+  meetingType,
+  meetingGoal,
   flushChunk,
 }: UseSuggestionsOptions) {
   const [batches, setBatches] = useState<SuggestionBatch[]>([]);
@@ -47,6 +51,10 @@ export function useSuggestions({
   suggestionPromptRef.current = suggestionPrompt;
   const roleRef = useRef(role);
   roleRef.current = role;
+  const meetingTypeRef = useRef(meetingType);
+  meetingTypeRef.current = meetingType;
+  const meetingGoalRef = useRef(meetingGoal);
+  meetingGoalRef.current = meetingGoal;
 
   const generateSuggestions = useCallback(async () => {
     if (isLoadingRef.current) return;
@@ -66,6 +74,8 @@ export function useSuggestions({
           transcript: recentChunks,
           systemPrompt: suggestionPromptRef.current,
           role: roleRef.current,
+          meetingType: meetingTypeRef.current,
+          meetingGoal: meetingGoalRef.current,
           apiKey: apiKeyRef.current,
         }),
       });

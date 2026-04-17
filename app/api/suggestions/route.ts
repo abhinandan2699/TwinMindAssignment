@@ -10,7 +10,7 @@ interface TranscriptChunk {
 }
 
 export async function POST(req: NextRequest) {
-  const { transcript, systemPrompt, role, apiKey } = await req.json();
+  const { transcript, systemPrompt, role, meetingType, meetingGoal, apiKey } = await req.json();
 
   if (!apiKey) return NextResponse.json({ error: "API key required" }, { status: 401 });
   if (!transcript || transcript.length === 0) return NextResponse.json({ error: "No transcript provided" }, { status: 400 });
@@ -31,7 +31,15 @@ export async function POST(req: NextRequest) {
     const completion = await groq.chat.completions.create({
       model: SUGGESTIONS_MODEL,
       messages: [
-        { role: "system", content: `${systemPrompt}\n\nThe user's role: ${role}` },
+        {
+          role: "system",
+          content: [
+            systemPrompt,
+            `The user's role: ${role}`,
+            meetingType ? `Meeting type: ${meetingType}` : null,
+            meetingGoal ? `Meeting goal: ${meetingGoal}` : null,
+          ].filter(Boolean).join("\n"),
+        },
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,
