@@ -303,6 +303,16 @@ function SummaryTab({
   isRecording: boolean;
   onGenerate: () => void;
 }) {
+  const [checked, setChecked] = useState<boolean[]>([]);
+
+  useEffect(() => {
+    if (summary) setChecked(new Array(summary.todos.length).fill(false));
+  }, [summary]);
+
+  function toggle(i: number) {
+    setChecked((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+  }
+
   if (isLoading) {
     return (
       <div
@@ -412,13 +422,21 @@ function SummaryTab({
         >
           Top 5 To-Do Items
         </div>
-        <ol style={{ margin: 0, paddingLeft: 18 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {summary.todos.map((todo: string, i: number) => (
-            <li key={i} style={{ color: "var(--text)", marginBottom: 8, paddingLeft: 4 }}>
-              {todo}
-            </li>
+            <label key={i} style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
+              <input
+                type="checkbox"
+                checked={checked[i] ?? false}
+                onChange={() => toggle(i)}
+                style={{ marginTop: 2, flexShrink: 0, accentColor: "var(--accent)", cursor: "pointer" }}
+              />
+              <span style={{ color: "var(--text)", textDecoration: checked[i] ? "line-through" : "none", opacity: checked[i] ? 0.5 : 1, lineHeight: 1.5 }}>
+                {todo}
+              </span>
+            </label>
           ))}
-        </ol>
+        </div>
       </div>
     </div>
   );
