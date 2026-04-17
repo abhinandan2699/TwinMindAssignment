@@ -26,8 +26,8 @@ export default function SuggestionsPanel({
   onSuggestionClick,
 }: Props) {
   const countdownLabel = isRecording
-    ? `auto-refresh in ${countdown}s`
-    : "paused";
+    ? `next suggestions in ${countdown}s`
+    : "suggestions append every 30s";
 
   return (
     <div
@@ -129,7 +129,9 @@ export default function SuggestionsPanel({
               lineHeight: 1.5,
             }}
           >
-            Suggestions appear here once recording starts.
+            {isRecording
+              ? `First suggestions in ${countdown}s…`
+              : "Suggestions appear here once recording starts."}
           </div>
         )}
 

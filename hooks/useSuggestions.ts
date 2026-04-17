@@ -10,6 +10,7 @@ interface UseSuggestionsOptions {
   apiKey: string | null;
   contextWindow: number;
   suggestionPrompt: string;
+  role: string;
 }
 
 const REFRESH_INTERVAL_SEC = 30;
@@ -20,6 +21,7 @@ export function useSuggestions({
   apiKey,
   contextWindow,
   suggestionPrompt,
+  role,
 }: UseSuggestionsOptions) {
   const [batches, setBatches] = useState<SuggestionBatch[]>([]);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL_SEC);
@@ -38,6 +40,8 @@ export function useSuggestions({
   contextWindowRef.current = contextWindow;
   const suggestionPromptRef = useRef(suggestionPrompt);
   suggestionPromptRef.current = suggestionPrompt;
+  const roleRef = useRef(role);
+  roleRef.current = role;
 
   const generateSuggestions = useCallback(async () => {
     if (isLoadingRef.current) return;
@@ -54,6 +58,7 @@ export function useSuggestions({
           transcript: transcriptRef.current,
           contextWindow: contextWindowRef.current,
           systemPrompt: suggestionPromptRef.current,
+          role: roleRef.current,
           apiKey: apiKeyRef.current,
         }),
       });

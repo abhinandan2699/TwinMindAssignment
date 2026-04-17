@@ -7,6 +7,8 @@ interface Props {
   apiKey: string;
   onSave: (key: string) => void;
   onClose: () => void;
+  role: string;
+  onSaveRole: (s: string) => void;
   contextWindow: number;
   onSaveContextWindow: (n: number) => void;
   suggestionPrompt: string;
@@ -20,6 +22,8 @@ export default function SettingsModal({
   apiKey,
   onSave,
   onClose,
+  role,
+  onSaveRole,
   contextWindow,
   onSaveContextWindow,
   suggestionPrompt,
@@ -28,6 +32,7 @@ export default function SettingsModal({
   onSaveChatPrompt,
 }: Props) {
   const [draftKey, setDraftKey] = useState(apiKey);
+  const [draftRole, setDraftRole] = useState(role);
   const [draftWindow, setDraftWindow] = useState(contextWindow);
   const [draftPrompt, setDraftPrompt] = useState(suggestionPrompt);
   const [draftChatPrompt, setDraftChatPrompt] = useState(chatPrompt);
@@ -36,15 +41,17 @@ export default function SettingsModal({
   useEffect(() => {
     if (isOpen) {
       setDraftKey(apiKey);
+      setDraftRole(role);
       setDraftWindow(contextWindow);
       setDraftPrompt(suggestionPrompt);
       setDraftChatPrompt(chatPrompt);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isOpen, apiKey, contextWindow, suggestionPrompt, chatPrompt]);
+  }, [isOpen, apiKey, role, contextWindow, suggestionPrompt, chatPrompt]);
 
   function handleSave() {
     onSave(draftKey.trim());
+    onSaveRole(draftRole.trim() || role);
     onSaveContextWindow(Math.max(1, Math.min(10, draftWindow)));
     onSaveSuggestionPrompt(draftPrompt.trim() || suggestionPrompt);
     onSaveChatPrompt(draftChatPrompt.trim() || chatPrompt);
@@ -139,6 +146,22 @@ export default function SettingsModal({
             />
             <div style={hint}>
               Kept in memory only, cleared on page reload. Never sent to any server other than Groq.
+            </div>
+          </label>
+
+          {/* Role */}
+          <label style={{ display: "block" }}>
+            <div style={fieldLabel}>Your role</div>
+            <input
+              type="text"
+              value={draftRole}
+              onChange={(e) => setDraftRole(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="e.g. Product manager being interviewed at Google"
+              style={inputStyle}
+            />
+            <div style={hint}>
+              Helps tailor suggestions to your perspective in the conversation.
             </div>
           </label>
 

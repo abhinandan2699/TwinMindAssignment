@@ -10,6 +10,9 @@ interface UseChatOptions {
   chatPrompt: string;
 }
 
+const KEEP_RECENT_EXCHANGES = 2;
+const KEEP_RECENT_CHUNKS = 2;
+
 function nowTime() {
   return new Date().toLocaleTimeString([], {
     hour: "2-digit",
@@ -18,11 +21,26 @@ function nowTime() {
   });
 }
 
+async function summarize(
+  apiKey: string,
+  kind: "chat" | "transcript",
+  newContent: string,
+  existingSummary: string | null,
+): Promise<string> {
+  const res = await fetch("/api/summarize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ apiKey, kind, newContent, existingSummary }),
+  });
+  if (!res.ok) throw new Error("Summarization failed");
+  const data = await res.json();
+  return data.summary as string;
+}
+
 export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
 
-  // Keep a ref to the current messages so sendMessage always reads the latest list
   const messagesRef = useRef<ChatMessage[]>([]);
   const transcriptRef = useRef(transcript);
   transcriptRef.current = transcript;
@@ -31,13 +49,18 @@ export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
   const chatPromptRef = useRef(chatPrompt);
   chatPromptRef.current = chatPrompt;
 
+  // Rolling summaries — track which items have been folded in
+  const chatSummaryRef = useRef<string | null>(null);
+  const chatSummaryUpToIndexRef = useRef<number>(-1); // index of last assistant msg included in summary
+  const transcriptSummaryRef = useRef<string | null>(null);
+  const transcriptSummaryUpToIndexRef = useRef<number>(-1); // index of last chunk included in summary
+
   const sendMessage = useCallback(async (text: string, label?: string) => {
     if (!apiKeyRef.current || isStreaming) return;
 
     const userMsg: ChatMessage = { role: "user", content: text, label, timestamp: nowTime() };
     const assistantPlaceholder: ChatMessage = { role: "assistant", content: "", timestamp: nowTime() };
 
-    // Build the list to send BEFORE touching state (avoids React 18 batch-async issue)
     const apiMessages = [...messagesRef.current, userMsg];
     const nextMessages = [...apiMessages, assistantPlaceholder];
     messagesRef.current = nextMessages;
@@ -45,12 +68,58 @@ export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
     setIsStreaming(true);
 
     try {
+      // ── Compact chat history if needed ──────────────────────────────────────
+      // Completed exchanges = pairs of [user, assistant]. New userMsg has no answer yet.
+      // Working from messagesRef.current (without the new userMsg + placeholder).
+      const completedMessages = messagesRef.current.slice(0, -2); // strip new user + placeholder
+      const unsummarizedStart = chatSummaryUpToIndexRef.current + 1;
+      const unsummarizedMessages = completedMessages.slice(unsummarizedStart);
+      const unsummarizedExchanges = Math.floor(unsummarizedMessages.length / 2);
+
+      if (unsummarizedExchanges > KEEP_RECENT_EXCHANGES) {
+        const exchangesToCompact = unsummarizedExchanges - KEEP_RECENT_EXCHANGES;
+        const messagesToCompact = unsummarizedMessages.slice(0, exchangesToCompact * 2);
+        const compactText = messagesToCompact
+          .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+          .join("\n\n");
+        try {
+          const newSummary = await summarize(apiKeyRef.current, "chat", compactText, chatSummaryRef.current);
+          chatSummaryRef.current = newSummary;
+          chatSummaryUpToIndexRef.current = unsummarizedStart + messagesToCompact.length - 1;
+        } catch {
+          // proceed without compacting
+        }
+      }
+
+      // ── Compact transcript if needed ────────────────────────────────────────
+      const allChunks = transcriptRef.current.filter((c) => !c.isError);
+      const transcriptUnsummarizedStart = transcriptSummaryUpToIndexRef.current + 1;
+      const unsummarizedChunks = allChunks.slice(transcriptUnsummarizedStart);
+
+      if (unsummarizedChunks.length > KEEP_RECENT_CHUNKS) {
+        const chunksToCompact = unsummarizedChunks.slice(0, unsummarizedChunks.length - KEEP_RECENT_CHUNKS);
+        const compactText = chunksToCompact.map((c) => `[${c.timestamp}] ${c.text}`).join("\n");
+        try {
+          const newSummary = await summarize(apiKeyRef.current, "transcript", compactText, transcriptSummaryRef.current);
+          transcriptSummaryRef.current = newSummary;
+          transcriptSummaryUpToIndexRef.current = transcriptUnsummarizedStart + chunksToCompact.length - 1;
+        } catch {
+          // proceed without compacting
+        }
+      }
+
+      // ── Build payload with summaries + recent items ─────────────────────────
+      const recentMessages = completedMessages.slice(chatSummaryUpToIndexRef.current + 1);
+      const recentChunks = allChunks.slice(transcriptSummaryUpToIndexRef.current + 1);
+
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: apiMessages.map(({ role, content }) => ({ role, content })),
-          transcript: transcriptRef.current,
+          messages: [...recentMessages, userMsg].map(({ role, content }) => ({ role, content })),
+          chatSummary: chatSummaryRef.current,
+          transcript: recentChunks,
+          transcriptSummary: transcriptSummaryRef.current,
           systemPrompt: chatPromptRef.current,
           suggestionType: label,
           apiKey: apiKeyRef.current,

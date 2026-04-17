@@ -9,10 +9,11 @@ import { Suggestion } from "@/components/SuggestionCard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSuggestions } from "@/hooks/useSuggestions";
 import { useChat } from "@/hooks/useChat";
-import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT } from "@/lib/defaults";
+import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT, DEFAULT_ROLE } from "@/lib/defaults";
 
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
+  const [role, setRole] = useState(DEFAULT_ROLE);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextWindow, setContextWindow] = useState(3);
   const [suggestionPrompt, setSuggestionPrompt] = useState(DEFAULT_SUGGESTION_PROMPT);
@@ -21,6 +22,8 @@ export default function Home() {
   useEffect(() => {
     const key = sessionStorage.getItem("groq_api_key");
     if (key) setApiKey(key);
+    const r = sessionStorage.getItem("role");
+    if (r) setRole(r);
     const win = sessionStorage.getItem("suggestion_context_window");
     if (win) setContextWindow(Number(win));
     const sPrompt = sessionStorage.getItem("suggestion_prompt");
@@ -32,6 +35,11 @@ export default function Home() {
   function saveApiKey(key: string) {
     setApiKey(key);
     sessionStorage.setItem("groq_api_key", key);
+  }
+
+  function saveRole(s: string) {
+    setRole(s);
+    sessionStorage.setItem("role", s);
   }
 
   function saveContextWindow(n: number) {
@@ -57,6 +65,7 @@ export default function Home() {
     apiKey: apiKey || null,
     contextWindow,
     suggestionPrompt,
+    role,
   });
 
   const chat = useChat({
@@ -172,6 +181,8 @@ export default function Home() {
         apiKey={apiKey}
         onSave={saveApiKey}
         onClose={() => setSettingsOpen(false)}
+        role={role}
+        onSaveRole={saveRole}
         contextWindow={contextWindow}
         onSaveContextWindow={saveContextWindow}
         suggestionPrompt={suggestionPrompt}
