@@ -11,6 +11,7 @@ interface UseSuggestionsOptions {
   contextWindow: number;
   suggestionPrompt: string;
   role: string;
+  flushChunk: () => void;
 }
 
 const REFRESH_INTERVAL_SEC = 30;
@@ -22,6 +23,7 @@ export function useSuggestions({
   contextWindow,
   suggestionPrompt,
   role,
+  flushChunk,
 }: UseSuggestionsOptions) {
   const [batches, setBatches] = useState<SuggestionBatch[]>([]);
   const [countdown, setCountdown] = useState(REFRESH_INTERVAL_SEC);
@@ -30,6 +32,9 @@ export function useSuggestions({
   const tickerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownRef = useRef(REFRESH_INTERVAL_SEC);
   const isLoadingRef = useRef(false);
+  const pendingReloadRef = useRef(false);
+  const prevTranscriptLenRef = useRef(0);
+  const pendingReloadTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep latest values accessible in callbacks without re-creating them
   const transcriptRef = useRef(transcript);
@@ -88,8 +93,24 @@ export function useSuggestions({
     }
   }, []);
 
-  // Fire immediately when the first transcript chunk arrives while recording
+  // Fire when a new transcript chunk arrives (handles both auto-start and pending manual reload)
   useEffect(() => {
+    const prev = prevTranscriptLenRef.current;
+    prevTranscriptLenRef.current = transcript.length;
+
+    if (transcript.length === 0) return;
+
+    if (pendingReloadRef.current && transcript.length > prev) {
+      pendingReloadRef.current = false;
+      if (pendingReloadTimeoutRef.current) {
+        clearTimeout(pendingReloadTimeoutRef.current);
+        pendingReloadTimeoutRef.current = null;
+      }
+      generateSuggestions();
+      return;
+    }
+
+    // Auto-fire on first chunk when recording starts
     if (isRecording && transcript.length === 1 && batches.length === 0 && !isLoadingRef.current) {
       generateSuggestions();
     }
@@ -127,9 +148,35 @@ export function useSuggestions({
     };
   }, [isRecording, generateSuggestions]);
 
-  const manualReload = useCallback(() => {
-    generateSuggestions();
-  }, [generateSuggestions]);
+  const reset = useCallback(() => {
+    setBatches([]);
+    countdownRef.current = REFRESH_INTERVAL_SEC;
+    setCountdown(REFRESH_INTERVAL_SEC);
+    pendingReloadRef.current = false;
+    prevTranscriptLenRef.current = 0;
+    if (pendingReloadTimeoutRef.current) {
+      clearTimeout(pendingReloadTimeoutRef.current);
+      pendingReloadTimeoutRef.current = null;
+    }
+  }, []);
 
-  return { batches, countdown, isLoading, manualReload };
+  const manualReload = useCallback(() => {
+    if (isRecording) {
+      pendingReloadRef.current = true;
+      flushChunk();
+      // Fallback: if no new chunk arrives within 10s (silence / short audio dropped),
+      // clear the flag and generate with whatever transcript exists.
+      if (pendingReloadTimeoutRef.current) clearTimeout(pendingReloadTimeoutRef.current);
+      pendingReloadTimeoutRef.current = setTimeout(() => {
+        if (pendingReloadRef.current) {
+          pendingReloadRef.current = false;
+          generateSuggestions();
+        }
+      }, 10_000);
+    } else {
+      generateSuggestions();
+    }
+  }, [generateSuggestions, isRecording, flushChunk]);
+
+  return { batches, countdown, isLoading, manualReload, reset };
 }

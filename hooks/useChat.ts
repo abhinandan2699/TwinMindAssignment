@@ -8,6 +8,7 @@ interface UseChatOptions {
   transcript: TranscriptChunk[];
   apiKey: string | null;
   chatPrompt: string;
+  typePrompts: Record<string, string>;
 }
 
 const KEEP_RECENT_EXCHANGES = 2;
@@ -37,7 +38,7 @@ async function summarize(
   return data.summary as string;
 }
 
-export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
+export function useChat({ transcript, apiKey, chatPrompt, typePrompts }: UseChatOptions) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
 
@@ -48,6 +49,8 @@ export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
   apiKeyRef.current = apiKey;
   const chatPromptRef = useRef(chatPrompt);
   chatPromptRef.current = chatPrompt;
+  const typePromptsRef = useRef(typePrompts);
+  typePromptsRef.current = typePrompts;
 
   // Rolling summaries — track which items have been folded in
   const chatSummaryRef = useRef<string | null>(null);
@@ -121,6 +124,7 @@ export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
           transcript: recentChunks,
           transcriptSummary: transcriptSummaryRef.current,
           systemPrompt: chatPromptRef.current,
+          typePrompts: typePromptsRef.current,
           suggestionType: label,
           apiKey: apiKeyRef.current,
         }),
@@ -166,5 +170,14 @@ export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
     }
   }, [isStreaming]);
 
-  return { messages, isStreaming, sendMessage };
+  const reset = useCallback(() => {
+    setMessages([]);
+    messagesRef.current = [];
+    chatSummaryRef.current = null;
+    chatSummaryUpToIndexRef.current = -1;
+    transcriptSummaryRef.current = null;
+    transcriptSummaryUpToIndexRef.current = -1;
+  }, []);
+
+  return { messages, isStreaming, sendMessage, reset };
 }

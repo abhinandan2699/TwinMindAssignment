@@ -15,6 +15,14 @@ interface Props {
   onSaveSuggestionPrompt: (s: string) => void;
   chatPrompt: string;
   onSaveChatPrompt: (s: string) => void;
+  questionPrompt: string;
+  onSaveQuestionPrompt: (s: string) => void;
+  talkingPrompt: string;
+  onSaveTalkingPrompt: (s: string) => void;
+  answerPrompt: string;
+  onSaveAnswerPrompt: (s: string) => void;
+  factPrompt: string;
+  onSaveFactPrompt: (s: string) => void;
 }
 
 export default function SettingsModal({
@@ -30,12 +38,24 @@ export default function SettingsModal({
   onSaveSuggestionPrompt,
   chatPrompt,
   onSaveChatPrompt,
+  questionPrompt,
+  onSaveQuestionPrompt,
+  talkingPrompt,
+  onSaveTalkingPrompt,
+  answerPrompt,
+  onSaveAnswerPrompt,
+  factPrompt,
+  onSaveFactPrompt,
 }: Props) {
   const [draftKey, setDraftKey] = useState(apiKey);
   const [draftRole, setDraftRole] = useState(role);
   const [draftWindow, setDraftWindow] = useState(contextWindow);
   const [draftPrompt, setDraftPrompt] = useState(suggestionPrompt);
   const [draftChatPrompt, setDraftChatPrompt] = useState(chatPrompt);
+  const [draftQuestionPrompt, setDraftQuestionPrompt] = useState(questionPrompt);
+  const [draftTalkingPrompt, setDraftTalkingPrompt] = useState(talkingPrompt);
+  const [draftAnswerPrompt, setDraftAnswerPrompt] = useState(answerPrompt);
+  const [draftFactPrompt, setDraftFactPrompt] = useState(factPrompt);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -45,9 +65,13 @@ export default function SettingsModal({
       setDraftWindow(contextWindow);
       setDraftPrompt(suggestionPrompt);
       setDraftChatPrompt(chatPrompt);
+      setDraftQuestionPrompt(questionPrompt);
+      setDraftTalkingPrompt(talkingPrompt);
+      setDraftAnswerPrompt(answerPrompt);
+      setDraftFactPrompt(factPrompt);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isOpen, apiKey, role, contextWindow, suggestionPrompt, chatPrompt]);
+  }, [isOpen, apiKey, role, contextWindow, suggestionPrompt, chatPrompt, questionPrompt, talkingPrompt, answerPrompt, factPrompt]);
 
   function handleSave() {
     onSave(draftKey.trim());
@@ -55,6 +79,10 @@ export default function SettingsModal({
     onSaveContextWindow(Math.max(1, Math.min(10, draftWindow)));
     onSaveSuggestionPrompt(draftPrompt.trim() || suggestionPrompt);
     onSaveChatPrompt(draftChatPrompt.trim() || chatPrompt);
+    onSaveQuestionPrompt(draftQuestionPrompt.trim() || questionPrompt);
+    onSaveTalkingPrompt(draftTalkingPrompt.trim() || talkingPrompt);
+    onSaveAnswerPrompt(draftAnswerPrompt.trim() || answerPrompt);
+    onSaveFactPrompt(draftFactPrompt.trim() || factPrompt);
     onClose();
   }
 
@@ -205,9 +233,59 @@ export default function SettingsModal({
               style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
             />
             <div style={hint}>
-              System prompt used when answering questions in the chat panel.
+              Used when you type a free-form message in the chat panel.
             </div>
           </label>
+
+          {/* Per-type expansion prompts */}
+          <div style={{ borderTop: "1px solid var(--border)", paddingTop: 16 }}>
+            <div style={{ ...fieldLabel, marginBottom: 14 }}>Suggestion expansion prompts</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 16, lineHeight: 1.5 }}>
+              Used when you click a suggestion card. Each type has its own prompt that overrides the chat system prompt above.
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <label style={{ display: "block" }}>
+                <div style={fieldLabel}>Question to ask</div>
+                <textarea
+                  value={draftQuestionPrompt}
+                  onChange={(e) => setDraftQuestionPrompt(e.target.value)}
+                  rows={6}
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <div style={fieldLabel}>Talking point</div>
+                <textarea
+                  value={draftTalkingPrompt}
+                  onChange={(e) => setDraftTalkingPrompt(e.target.value)}
+                  rows={8}
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <div style={fieldLabel}>Answer</div>
+                <textarea
+                  value={draftAnswerPrompt}
+                  onChange={(e) => setDraftAnswerPrompt(e.target.value)}
+                  rows={6}
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+                />
+              </label>
+
+              <label style={{ display: "block" }}>
+                <div style={fieldLabel}>Fact-check</div>
+                <textarea
+                  value={draftFactPrompt}
+                  onChange={(e) => setDraftFactPrompt(e.target.value)}
+                  rows={5}
+                  style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+                />
+              </label>
+            </div>
+          </div>
 
         </div>
 

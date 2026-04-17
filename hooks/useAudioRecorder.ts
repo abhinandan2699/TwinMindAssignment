@@ -20,6 +20,7 @@ export interface AudioRecorderState {
 export interface AudioRecorderActions {
   startRecording: () => Promise<void>;
   stopRecording: () => void;
+  flushChunk: () => void;
 }
 
 const CHUNK_INTERVAL_SEC = 30;
@@ -138,6 +139,7 @@ export function useAudioRecorder(apiKey: string | null): AudioRecorderState & Au
     };
     mr.start();
 
+    setTranscript([]);
     setIsRecording(true);
     setRecordingTime(0);
     setNextChunkIn(CHUNK_INTERVAL_SEC);
@@ -157,6 +159,10 @@ export function useAudioRecorder(apiKey: string | null): AudioRecorderState & Au
         cycleRecorder(stream);
       }
     }, 1000);
+  }, [cycleRecorder]);
+
+  const flushChunk = useCallback(() => {
+    if (streamRef.current) cycleRecorder(streamRef.current);
   }, [cycleRecorder]);
 
   const stopRecording = useCallback(() => {
@@ -195,5 +201,6 @@ export function useAudioRecorder(apiKey: string | null): AudioRecorderState & Au
     micError,
     startRecording,
     stopRecording,
+    flushChunk,
   };
 }

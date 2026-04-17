@@ -9,7 +9,7 @@ import { Suggestion } from "@/components/SuggestionCard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSuggestions } from "@/hooks/useSuggestions";
 import { useChat } from "@/hooks/useChat";
-import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT, DEFAULT_ROLE } from "@/lib/defaults";
+import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT, DEFAULT_ROLE, SUGGESTION_TYPE_PROMPTS } from "@/lib/defaults";
 
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
@@ -18,6 +18,10 @@ export default function Home() {
   const [contextWindow, setContextWindow] = useState(3);
   const [suggestionPrompt, setSuggestionPrompt] = useState(DEFAULT_SUGGESTION_PROMPT);
   const [chatPrompt, setChatPrompt] = useState(DEFAULT_CHAT_PROMPT);
+  const [questionPrompt, setQuestionPrompt] = useState(SUGGESTION_TYPE_PROMPTS.question);
+  const [talkingPrompt, setTalkingPrompt] = useState(SUGGESTION_TYPE_PROMPTS.talking);
+  const [answerPrompt, setAnswerPrompt] = useState(SUGGESTION_TYPE_PROMPTS.answer);
+  const [factPrompt, setFactPrompt] = useState(SUGGESTION_TYPE_PROMPTS.fact);
 
   useEffect(() => {
     const key = sessionStorage.getItem("groq_api_key");
@@ -30,6 +34,14 @@ export default function Home() {
     if (sPrompt) setSuggestionPrompt(sPrompt);
     const cPrompt = sessionStorage.getItem("chat_prompt");
     if (cPrompt) setChatPrompt(cPrompt);
+    const qPrompt = sessionStorage.getItem("question_prompt");
+    if (qPrompt) setQuestionPrompt(qPrompt);
+    const tPrompt = sessionStorage.getItem("talking_prompt");
+    if (tPrompt) setTalkingPrompt(tPrompt);
+    const aPrompt = sessionStorage.getItem("answer_prompt");
+    if (aPrompt) setAnswerPrompt(aPrompt);
+    const fPrompt = sessionStorage.getItem("fact_prompt");
+    if (fPrompt) setFactPrompt(fPrompt);
   }, []);
 
   function saveApiKey(key: string) {
@@ -57,6 +69,26 @@ export default function Home() {
     sessionStorage.setItem("chat_prompt", s);
   }
 
+  function saveQuestionPrompt(s: string) {
+    setQuestionPrompt(s);
+    sessionStorage.setItem("question_prompt", s);
+  }
+
+  function saveTalkingPrompt(s: string) {
+    setTalkingPrompt(s);
+    sessionStorage.setItem("talking_prompt", s);
+  }
+
+  function saveAnswerPrompt(s: string) {
+    setAnswerPrompt(s);
+    sessionStorage.setItem("answer_prompt", s);
+  }
+
+  function saveFactPrompt(s: string) {
+    setFactPrompt(s);
+    sessionStorage.setItem("fact_prompt", s);
+  }
+
   const recorder = useAudioRecorder(apiKey || null);
 
   const suggestions = useSuggestions({
@@ -66,13 +98,24 @@ export default function Home() {
     contextWindow,
     suggestionPrompt,
     role,
+    flushChunk: recorder.flushChunk,
   });
 
   const chat = useChat({
     transcript: recorder.transcript,
     apiKey: apiKey || null,
     chatPrompt,
+    typePrompts: { question: questionPrompt, talking: talkingPrompt, answer: answerPrompt, fact: factPrompt },
   });
+
+  const recorderWithReset = {
+    ...recorder,
+    startRecording: async () => {
+      suggestions.reset();
+      chat.reset();
+      await recorder.startRecording();
+    },
+  };
 
   function handleSuggestionClick(s: Suggestion) {
     chat.sendMessage(s.text, s.type);
@@ -157,7 +200,7 @@ export default function Home() {
         }}
       >
         <TranscriptPanel
-          recorder={recorder}
+          recorder={recorderWithReset}
           hasApiKey={!!apiKey}
           onOpenSettings={() => setSettingsOpen(true)}
         />
@@ -189,6 +232,14 @@ export default function Home() {
         onSaveSuggestionPrompt={saveSuggestionPrompt}
         chatPrompt={chatPrompt}
         onSaveChatPrompt={saveChatPrompt}
+        questionPrompt={questionPrompt}
+        onSaveQuestionPrompt={saveQuestionPrompt}
+        talkingPrompt={talkingPrompt}
+        onSaveTalkingPrompt={saveTalkingPrompt}
+        answerPrompt={answerPrompt}
+        onSaveAnswerPrompt={saveAnswerPrompt}
+        factPrompt={factPrompt}
+        onSaveFactPrompt={saveFactPrompt}
       />
     </div>
   );

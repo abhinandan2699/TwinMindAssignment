@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
-import { SUGGESTION_TYPE_PROMPTS } from "@/lib/defaults";
 
 const CHAT_MODEL = "openai/gpt-oss-120b";
 
@@ -17,6 +16,7 @@ export async function POST(req: NextRequest) {
     transcript,
     transcriptSummary,
     systemPrompt,
+    typePrompts,
     suggestionType,
     apiKey,
   } = await req.json();
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
     ? `EARLIER CHAT (summarized):\n${chatSummary}`
     : null;
 
-  const basePrompt = (suggestionType && SUGGESTION_TYPE_PROMPTS[suggestionType]) ?? systemPrompt;
+  const basePrompt = (suggestionType && typePrompts?.[suggestionType]) ?? systemPrompt;
   const systemContent = [
     basePrompt,
     `--- MEETING TRANSCRIPT ---\n${transcriptBlock}\n--- END TRANSCRIPT ---`,

@@ -38,8 +38,8 @@ export default function TranscriptPanel({ recorder, hasApiKey, onOpenSettings }:
   const statusText = (() => {
     if (!hasApiKey) return "No API key set — open Settings to add one.";
     if (micError) return micError;
-    if (isRecording) return `Recording · ${formatTime(recordingTime)} · next chunk in ${nextChunkIn}s`;
-    return "Click mic to start. Transcript appends every ~30s.";
+    if (isRecording) return `Recording · ${formatTime(recordingTime)} · transcript updates every 30s.`;
+    return "Click mic to start. Transcript updates every 30s.";
   })();
 
   return (
