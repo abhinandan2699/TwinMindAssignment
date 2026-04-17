@@ -202,6 +202,7 @@ export default function Home() {
         <TranscriptPanel
           recorder={recorderWithReset}
           hasApiKey={!!apiKey}
+          apiKey={apiKey}
           onOpenSettings={() => setSettingsOpen(true)}
         />
         <SuggestionsPanel

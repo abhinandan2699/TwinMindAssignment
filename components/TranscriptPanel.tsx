@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AudioRecorderState, AudioRecorderActions, TranscriptChunk } from "@/hooks/useAudioRecorder";
 
 interface Props {
   recorder: AudioRecorderState & AudioRecorderActions;
   hasApiKey: boolean;
+  apiKey: string;
   onOpenSettings: () => void;
+}
+
+type Tab = "transcript" | "summary";
+
+interface SessionSummary {
+  summary: string;
+  todos: string[];
 }
 
 function formatTime(seconds: number) {
@@ -15,16 +23,47 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, "0")}`;
 }
 
-export default function TranscriptPanel({ recorder, hasApiKey, onOpenSettings }: Props) {
-  const { isRecording, isTranscribing, recordingTime, nextChunkIn, transcript, micError, startRecording, stopRecording } = recorder;
+export default function TranscriptPanel({ recorder, hasApiKey, apiKey, onOpenSettings }: Props) {
+  const { isRecording, isTranscribing, recordingTime, transcript, micError, startRecording, stopRecording } = recorder;
   const bodyRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom on new transcript entries.
+  const [activeTab, setActiveTab] = useState<Tab>("transcript");
+  const [sessionSummary, setSessionSummary] = useState<SessionSummary | null>(null);
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [summaryError, setSummaryError] = useState<string | null>(null);
+
+  // Auto-scroll transcript to bottom on new entries.
   useEffect(() => {
-    if (bodyRef.current) {
+    if (activeTab === "transcript" && bodyRef.current) {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
-  }, [transcript, isTranscribing]);
+  }, [transcript, isTranscribing, activeTab]);
+
+
+  async function generateSummary() {
+    setIsSummarizing(true);
+    setSummaryError(null);
+
+    const fullText = transcript
+      .filter((c) => !c.isError)
+      .map((c) => `[${c.timestamp}] ${c.text}`)
+      .join("\n");
+
+    try {
+      const res = await fetch("/api/session-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript: fullText, apiKey }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Summary failed");
+      setSessionSummary({ summary: data.summary, todos: data.todos });
+    } catch (err) {
+      setSummaryError(err instanceof Error ? err.message : "Summary generation failed");
+    } finally {
+      setIsSummarizing(false);
+    }
+  }
 
   function handleMicClick() {
     if (!hasApiKey) return;
@@ -132,42 +171,96 @@ export default function TranscriptPanel({ recorder, hasApiKey, onOpenSettings }:
         </div>
       </div>
 
-      {/* Transcript body */}
-      <div ref={bodyRef} style={{ flex: 1, overflowY: "auto", padding: 14 }}>
-        {transcript.length === 0 && !isTranscribing && !isRecording ? (
-          <div
+      {/* Tabs */}
+      <div
+        style={{
+          display: "flex",
+          borderBottom: "1px solid var(--border)",
+          padding: "0 14px",
+          gap: 4,
+        }}
+      >
+        {(["transcript", "summary"] as Tab[]).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
             style={{
-              color: "var(--muted)",
+              background: "none",
+              border: "none",
+              borderBottom: activeTab === tab ? "2px solid var(--accent)" : "2px solid transparent",
+              color: activeTab === tab ? "var(--accent)" : "var(--muted)",
               fontSize: 13,
-              textAlign: "center",
-              padding: "30px 10px",
-              lineHeight: 1.5,
+              fontWeight: activeTab === tab ? 600 : 400,
+              padding: "8px 10px",
+              cursor: "pointer",
+              marginBottom: -1,
+              transition: "color 0.15s",
             }}
           >
-            No transcript yet — start the mic.
-          </div>
-        ) : (
-          <>
-            {transcript.map((chunk, i) => (
-              <TranscriptLine key={i} chunk={chunk} />
-            ))}
-            {isTranscribing && (
-              <div
+            {tab === "transcript" ? "Transcript" : "Summary & To-Do"}
+            {tab === "summary" && isSummarizing && (
+              <span
                 style={{
-                  fontSize: 13,
-                  color: "var(--muted)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  marginBottom: 10,
-                  fontStyle: "italic",
+                  marginLeft: 6,
+                  display: "inline-block",
+                  animation: "spin 1s linear infinite",
+                  fontSize: 11,
                 }}
               >
-                <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
-                Transcribing…
-              </div>
+                ⟳
+              </span>
             )}
-          </>
+          </button>
+        ))}
+      </div>
+
+      {/* Tab body */}
+      <div ref={bodyRef} style={{ flex: 1, overflowY: "auto", padding: 14 }}>
+        {activeTab === "transcript" ? (
+          transcript.length === 0 && !isTranscribing && !isRecording ? (
+            <div
+              style={{
+                color: "var(--muted)",
+                fontSize: 13,
+                textAlign: "center",
+                padding: "30px 10px",
+                lineHeight: 1.5,
+              }}
+            >
+              No transcript yet — start the mic.
+            </div>
+          ) : (
+            <>
+              {transcript.map((chunk, i) => (
+                <TranscriptLine key={i} chunk={chunk} />
+              ))}
+              {isTranscribing && (
+                <div
+                  style={{
+                    fontSize: 13,
+                    color: "var(--muted)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    marginBottom: 10,
+                    fontStyle: "italic",
+                  }}
+                >
+                  <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⟳</span>
+                  Transcribing…
+                </div>
+              )}
+            </>
+          )
+        ) : (
+          <SummaryTab
+            summary={sessionSummary}
+            isLoading={isSummarizing}
+            error={summaryError}
+            hasTranscript={transcript.length > 0}
+            isRecording={isRecording}
+            onGenerate={generateSummary}
+          />
         )}
       </div>
     </div>
@@ -191,6 +284,142 @@ function TranscriptLine({ chunk }: { chunk: TranscriptChunk }) {
         {chunk.timestamp}
       </span>
       <span>{chunk.text}</span>
+    </div>
+  );
+}
+
+function SummaryTab({
+  summary,
+  isLoading,
+  error,
+  hasTranscript,
+  isRecording,
+  onGenerate,
+}: {
+  summary: SessionSummary | null;
+  isLoading: boolean;
+  error: string | null;
+  hasTranscript: boolean;
+  isRecording: boolean;
+  onGenerate: () => void;
+}) {
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          color: "var(--muted)",
+          fontSize: 13,
+          textAlign: "center",
+          padding: "40px 10px",
+          lineHeight: 1.6,
+        }}
+      >
+        <div style={{ animation: "spin 1s linear infinite", display: "inline-block", fontSize: 20, marginBottom: 10 }}>
+          ⟳
+        </div>
+        <div>Generating summary…</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ padding: "20px 0" }}>
+        <div style={{ color: "var(--danger)", fontSize: 13, marginBottom: 12 }}>{error}</div>
+        {hasTranscript && (
+          <button
+            onClick={onGenerate}
+            style={{
+              background: "var(--accent)",
+              color: "#fff",
+              border: "none",
+              padding: "7px 14px",
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Retry
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (!summary) {
+    return (
+      <div
+        style={{
+          color: "var(--muted)",
+          fontSize: 13,
+          textAlign: "center",
+          padding: "30px 10px",
+          lineHeight: 1.6,
+        }}
+      >
+        {isRecording ? (
+          "Stop the recording to generate a summary."
+        ) : hasTranscript ? (
+          <button
+            onClick={onGenerate}
+            style={{
+              background: "var(--accent)",
+              color: "#fff",
+              border: "none",
+              padding: "7px 14px",
+              borderRadius: 6,
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Generate now
+          </button>
+        ) : (
+          "Begin the meeting first."
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+      <div style={{ marginBottom: 20 }}>
+        <div
+          style={{
+            fontSize: 11,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            color: "var(--muted)",
+            marginBottom: 8,
+            fontWeight: 600,
+          }}
+        >
+          Summary
+        </div>
+        <p style={{ margin: 0, color: "var(--text)" }}>{summary.summary}</p>
+      </div>
+
+      <div>
+        <div
+          style={{
+            fontSize: 11,
+            textTransform: "uppercase",
+            letterSpacing: 1,
+            color: "var(--muted)",
+            marginBottom: 8,
+            fontWeight: 600,
+          }}
+        >
+          Top 5 To-Do Items
+        </div>
+        <ol style={{ margin: 0, paddingLeft: 18 }}>
+          {summary.todos.map((todo: string, i: number) => (
+            <li key={i} style={{ color: "var(--text)", marginBottom: 8, paddingLeft: 4 }}>
+              {todo}
+            </li>
+          ))}
+        </ol>
+      </div>
     </div>
   );
 }
