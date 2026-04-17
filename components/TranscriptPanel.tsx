@@ -96,7 +96,7 @@ export default function TranscriptPanel({ recorder, hasApiKey, onOpenSettings }:
             border: "none",
             cursor: hasApiKey ? "pointer" : "not-allowed",
             background: !hasApiKey ? "var(--border)" : isRecording ? "var(--danger)" : "var(--accent)",
-            color: isRecording ? "#fff" : "#000",
+            color: "#fff",
             fontSize: 18,
             display: "flex",
             alignItems: "center",
@@ -182,7 +182,7 @@ function TranscriptLine({ chunk }: { chunk: TranscriptChunk }) {
         fontSize: 14,
         lineHeight: 1.55,
         marginBottom: 10,
-        color: chunk.isError ? "var(--danger)" : "#cfd3dc",
+        color: chunk.isError ? "var(--danger)" : "var(--text)",
         display: "flex",
         gap: 6,
       }}

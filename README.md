@@ -57,14 +57,15 @@ npm start
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 14 (App Router) |
-| UI | React 18, TypeScript, Tailwind CSS |
-| Transcription | Groq API — `whisper-large-v3` |
-| Suggestions / Chat | Groq API — `openai/gpt-oss-120b` |
-| Markdown rendering | `marked` |
-| Storage | Browser `sessionStorage` only |
+| Layer | Technology | Why |
+|---|---|---|
+| Framework | Next.js 14 (App Router) | API routes keep the Groq key server-side; no separate backend process needed |
+| UI | React 18, TypeScript | Strong typing catches prompt/response shape mismatches at compile time |
+| Styling | CSS custom properties + inline styles | Single `globals.css` variable swap changes the whole theme; no Tailwind purge surprises |
+| Transcription | Groq — `whisper-large-v3` | **Required by the assignment.** Best open-weight STT accuracy; Groq's hardware makes it fast enough for 30-second chunks |
+| Suggestions / Chat | Groq — `openai/gpt-oss-120b` | **Required by the assignment.** Standardized so evaluators compare prompt quality, not model quality |
+| Markdown rendering | `marked` | Lightweight; chat responses use headers, bullets, and bold that plain text can't render |
+| Storage | Browser `sessionStorage` only | Assignment explicitly requires no data persistence on reload; sessionStorage clears automatically on tab close |
 
 All AI calls go through Next.js API routes (`/api/transcribe`, `/api/suggestions`, `/api/chat`, `/api/summarize`) so the Groq key is never exposed in client-side bundles — it is only sent in request bodies to the server routes.
 
@@ -136,7 +137,29 @@ Changes take effect immediately on Save. All values are stored in `sessionStorag
 
 ---
 
-## Project Structure
+## Tradeoffs
+
+### 30-second polling vs. streaming transcription
+Whisper is not a streaming model — it processes complete audio segments, not a live audio stream. Chunking every 30 seconds is therefore the natural fit. The tradeoff is a ~30-second lag before the first suggestions appear. An alternative would be to use a streaming STT model (e.g. Groq's `distil-whisper-large-v3-en`) for near-real-time transcript, but the assignment mandated `whisper-large-v3`, and accuracy on shorter segments degrades noticeably below ~15 seconds.
+
+### Fixed chunk size vs. voice-activity-based segmentation
+Chunks are sliced on a clock boundary, not sentence boundaries. This occasionally cuts a thought mid-sentence, which can confuse the suggestions model on the boundary chunk. A VAD (Voice Activity Detection) segmenter would produce cleaner input but adds complexity. Given the 30-second window and the context overlap strategy (feeding N−1 chunks as background), the boundary artifact rarely affects suggestion quality in practice.
+
+### Rolling summarization vs. full transcript in every chat request
+Sending the full transcript to every chat request would give the model perfect recall but the token cost grows linearly with session length and eventually hits the model's context limit. Rolling summarization keeps the payload bounded at the cost of lossy compression — details from early in the conversation may be summarized away. The two-tier design (verbatim recent + summarized older) preserves the most actionable context while keeping latency predictable.
+
+### Context window setting vs. auto-sizing
+The context window (number of chunks fed to suggestions) is a user-tunable setting rather than dynamically inferred. Dynamic sizing (e.g. token-count-based) would be more robust but adds a round-trip to measure token length before the actual call. Keeping it manual lets the user trade off between more context (better suggestions, higher latency) and less context (faster refresh, less noise) depending on their meeting type.
+
+### Client-side key entry vs. server-stored key
+The Groq key is entered in the UI and sent in every request body. This was the assignment requirement ("do not hard-code or ship a key"). The tradeoff is that the key is visible in browser network tab requests. A production system would store the key server-side per authenticated user and never send it over the wire after initial setup.
+
+### No streaming for suggestions
+Suggestions are returned as a complete JSON payload, not streamed token-by-token. Streaming a structured JSON array mid-generation creates partial-parse edge cases. Since each suggestion batch is small (~150 tokens), the latency difference is negligible and the parsing is simpler with a single complete response.
+
+---
+
+
 
 ```
 app/

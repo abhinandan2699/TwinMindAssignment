@@ -106,8 +106,8 @@ export default function ChatPanel({ messages, isStreaming, onSend }: Props) {
                 </div>
                 <div
                   style={{
-                    background: msg.role === "user" ? "rgba(110,168,254,.08)" : "var(--panel-2)",
-                    border: `1px solid ${msg.role === "user" ? "rgba(110,168,254,.3)" : "var(--border)"}`,
+                    background: msg.role === "user" ? "rgba(15,52,96,.07)" : "var(--panel-2)",
+                    border: `1px solid ${msg.role === "user" ? "rgba(15,52,96,.2)" : "var(--border)"}`,
                     padding: "10px 12px",
                     borderRadius: 8,
                     fontSize: 13,
@@ -174,7 +174,7 @@ export default function ChatPanel({ messages, isStreaming, onSend }: Props) {
           disabled={isStreaming || !input.trim()}
           style={{
             background: isStreaming || !input.trim() ? "var(--panel-2)" : "var(--accent)",
-            color: isStreaming || !input.trim() ? "var(--muted)" : "#000",
+            color: isStreaming || !input.trim() ? "var(--muted)" : "#fff",
             border: "1px solid var(--border)",
             padding: "8px 14px",
             borderRadius: 6,

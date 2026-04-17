@@ -122,7 +122,7 @@ export default function SettingsModal({
     <>
       <div
         onClick={onClose}
-        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.5)", zIndex: 40 }}
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.25)", zIndex: 40 }}
       />
 
       <div
@@ -137,7 +137,7 @@ export default function SettingsModal({
           zIndex: 50,
           display: "flex",
           flexDirection: "column",
-          boxShadow: "-8px 0 32px rgba(0,0,0,0.4)",
+          boxShadow: "-8px 0 32px rgba(0,0,0,0.12)",
         }}
       >
         <div
@@ -316,7 +316,7 @@ export default function SettingsModal({
             onClick={handleSave}
             style={{
               background: "var(--accent)",
-              color: "#000",
+              color: "#fff",
               border: "none",
               padding: "7px 14px",
               borderRadius: 6,
