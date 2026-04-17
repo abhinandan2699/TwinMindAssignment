@@ -51,12 +51,14 @@ export function useSuggestions({
     setIsLoading(true);
 
     try {
+      const validChunks = transcriptRef.current.filter((c) => !c.isError);
+      const recentChunks = validChunks.slice(-(contextWindowRef.current ?? 3));
+
       const res = await fetch("/api/suggestions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          transcript: transcriptRef.current,
-          contextWindow: contextWindowRef.current,
+          transcript: recentChunks,
           systemPrompt: suggestionPromptRef.current,
           role: roleRef.current,
           apiKey: apiKeyRef.current,

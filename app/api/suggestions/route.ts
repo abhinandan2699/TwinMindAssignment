@@ -10,15 +10,12 @@ interface TranscriptChunk {
 }
 
 export async function POST(req: NextRequest) {
-  const { transcript, contextWindow, systemPrompt, role, apiKey } = await req.json();
+  const { transcript, systemPrompt, role, apiKey } = await req.json();
 
   if (!apiKey) return NextResponse.json({ error: "API key required" }, { status: 401 });
   if (!transcript || transcript.length === 0) return NextResponse.json({ error: "No transcript provided" }, { status: 400 });
 
-  const validChunks: TranscriptChunk[] = transcript.filter((c: TranscriptChunk) => !c.isError);
-  const recentChunks = validChunks.slice(-(contextWindow ?? 3));
-
-  if (recentChunks.length === 0) return NextResponse.json({ error: "No valid transcript chunks" }, { status: 400 });
+  const recentChunks: TranscriptChunk[] = transcript;
 
   const contextChunks = recentChunks.slice(0, -1);
   const newestChunk = recentChunks[recentChunks.length - 1];
