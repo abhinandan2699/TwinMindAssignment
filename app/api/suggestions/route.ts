@@ -2,14 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
 
 const SUGGESTIONS_MODEL = "openai/gpt-oss-120b";
-const MAX_OUTPUT_TOKENS = 2000;
-
-// Budget: 8000 TPM / 2 requests-per-min = 4000 tokens/request.
-// Subtract output reservation and fixed overhead (system prompt + labels) to get
-// the character budget available for transcript text (1 token ≈ 4 chars).
-const TOKENS_PER_REQUEST = 4000;
-const FIXED_OVERHEAD_TOKENS = 200;
-const TRANSCRIPT_CHAR_BUDGET = (TOKENS_PER_REQUEST - MAX_OUTPUT_TOKENS - FIXED_OVERHEAD_TOKENS) * 4; // ~7200
 
 interface TranscriptChunk {
   timestamp: string;
@@ -31,18 +23,11 @@ export async function POST(req: NextRequest) {
   const contextChunks = recentChunks.slice(0, -1);
   const newestChunk = recentChunks[recentChunks.length - 1];
 
-  // Give newest chunk 50% of the budget; split the rest equally among context chunks.
-  const newestMax = Math.floor(TRANSCRIPT_CHAR_BUDGET * 0.5);
-  const contextMax = contextChunks.length > 0
-    ? Math.floor((TRANSCRIPT_CHAR_BUDGET - newestMax) / contextChunks.length)
-    : 0;
-  const trim = (s: string, max: number) => s.length > max ? s.slice(-max) : s;
-
   const contextText = contextChunks.length > 0
-    ? `CONTEXT (background):\n${contextChunks.map((c) => `[${c.timestamp}] ${trim(c.text, contextMax)}`).join("\n")}\n\n`
+    ? `CONTEXT (background):\n${contextChunks.map((c) => `[${c.timestamp}] ${c.text}`).join("\n")}\n\n`
     : "";
 
-  const userMessage = `${contextText}MOST RECENT (generate suggestions about this):\n[${newestChunk.timestamp}] ${trim(newestChunk.text, newestMax)}`;
+  const userMessage = `${contextText}MOST RECENT (generate suggestions about this):\n[${newestChunk.timestamp}] ${newestChunk.text}`;
 
   try {
     const groq = new Groq({ apiKey });
@@ -53,7 +38,6 @@ export async function POST(req: NextRequest) {
         { role: "user", content: userMessage },
       ],
       temperature: 0.7,
-      max_completion_tokens: 2000,
     });
 
     const msg = completion.choices[0]?.message;

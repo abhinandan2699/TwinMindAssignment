@@ -52,6 +52,7 @@ export function useChat({ transcript, apiKey, chatPrompt }: UseChatOptions) {
           messages: apiMessages.map(({ role, content }) => ({ role, content })),
           transcript: transcriptRef.current,
           systemPrompt: chatPromptRef.current,
+          suggestionType: label,
           apiKey: apiKeyRef.current,
         }),
       });

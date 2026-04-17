@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Groq from "groq-sdk";
+import { SUGGESTION_TYPE_PROMPTS } from "@/lib/defaults";
 
 const CHAT_MODEL = "openai/gpt-oss-120b";
 
@@ -31,7 +32,7 @@ function trimHistory(messages: ChatMessage[], maxChars: number): ChatMessage[] {
 }
 
 export async function POST(req: NextRequest) {
-  const { messages, transcript, systemPrompt, apiKey } = await req.json();
+  const { messages, transcript, systemPrompt, suggestionType, apiKey } = await req.json();
 
   if (!apiKey) return NextResponse.json({ error: "API key required" }, { status: 401 });
   if (!messages?.length) return NextResponse.json({ error: "No messages provided" }, { status: 400 });
@@ -45,7 +46,8 @@ export async function POST(req: NextRequest) {
     ? transcriptText.slice(-TRANSCRIPT_MAX_CHARS)
     : transcriptText;
 
-  const systemContent = `${systemPrompt}\n\n--- MEETING TRANSCRIPT ---\n${truncated || "(no transcript yet)"}\n--- END TRANSCRIPT ---`;
+  const basePrompt = (suggestionType && SUGGESTION_TYPE_PROMPTS[suggestionType]) ?? systemPrompt;
+  const systemContent = `${basePrompt}\n\n--- MEETING TRANSCRIPT ---\n${truncated || "(no transcript yet)"}\n--- END TRANSCRIPT ---`;
 
   // Trim oldest messages if history exceeds budget (always keep the last user message)
   const trimmedMessages = trimHistory(messages as ChatMessage[], HISTORY_MAX_CHARS);
@@ -59,8 +61,8 @@ export async function POST(req: NextRequest) {
         ...trimmedMessages,
       ],
       stream: true,
-      max_completion_tokens: 1500,
-      temperature: 0.6,
+      max_completion_tokens: 800,
+      temperature: 0.2,
     });
 
     const readable = new ReadableStream({

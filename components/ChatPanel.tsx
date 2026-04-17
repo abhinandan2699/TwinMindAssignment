@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { marked } from "marked";
+import { marked, Renderer } from "marked";
+
+const renderer = new Renderer();
+renderer.link = (href, title, text) =>
+  `<a href="${href}" title="${title ?? ""}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+marked.use({ renderer });
 
 export interface ChatMessage {
   role: "user" | "assistant";
