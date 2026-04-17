@@ -12,10 +12,23 @@ interface Props {
   batches: SuggestionBatch[];
   onReload: () => void;
   countdown: number;
+  isLoading: boolean;
+  isRecording: boolean;
   onSuggestionClick: (suggestion: Suggestion) => void;
 }
 
-export default function SuggestionsPanel({ batches, onReload, countdown, onSuggestionClick }: Props) {
+export default function SuggestionsPanel({
+  batches,
+  onReload,
+  countdown,
+  isLoading,
+  isRecording,
+  onSuggestionClick,
+}: Props) {
+  const countdownLabel = isRecording
+    ? `auto-refresh in ${countdown}s`
+    : "paused";
+
   return (
     <div
       style={{
@@ -57,42 +70,56 @@ export default function SuggestionsPanel({ batches, onReload, countdown, onSugge
       >
         <button
           onClick={onReload}
+          disabled={isLoading}
           style={{
             background: "var(--panel-2)",
-            color: "var(--text)",
+            color: isLoading ? "var(--muted)" : "var(--text)",
             border: "1px solid var(--border)",
             padding: "6px 12px",
             borderRadius: 6,
             fontSize: 12,
-            cursor: "pointer",
+            cursor: isLoading ? "default" : "pointer",
+            opacity: isLoading ? 0.6 : 1,
           }}
         >
-          ↻ Reload suggestions
+          {isLoading ? "⟳ Loading…" : "↻ Reload suggestions"}
         </button>
         <span style={{ fontSize: 11, color: "var(--muted)", marginLeft: "auto" }}>
-          auto-refresh in {countdown}s
+          {countdownLabel}
         </span>
       </div>
 
       {/* Suggestions body */}
       <div style={{ flex: 1, overflowY: "auto", padding: 14 }}>
-        <div
-          style={{
-            background: "rgba(110,168,254,.08)",
-            border: "1px solid rgba(110,168,254,.3)",
-            color: "#cfd3dc",
-            padding: "8px 12px",
-            fontSize: 12,
-            borderRadius: 6,
-            marginBottom: 12,
-            lineHeight: 1.5,
-          }}
-        >
-          On reload (or auto every ~30s), generate <strong>3 fresh suggestions</strong> from recent transcript context.
-          New batch appears at the top; older batches push down (faded). Each is a tappable card.
-        </div>
+        {isLoading && batches.length === 0 && (
+          <div
+            style={{
+              color: "var(--muted)",
+              fontSize: 13,
+              textAlign: "center",
+              padding: "30px 10px",
+              lineHeight: 1.5,
+            }}
+          >
+            Generating suggestions…
+          </div>
+        )}
 
-        {batches.length === 0 ? (
+        {isLoading && batches.length > 0 && (
+          <div
+            style={{
+              fontSize: 11,
+              color: "var(--muted)",
+              textAlign: "center",
+              padding: "6px 0 10px",
+              letterSpacing: 0.5,
+            }}
+          >
+            ⟳ Generating new batch…
+          </div>
+        )}
+
+        {!isLoading && batches.length === 0 && (
           <div
             style={{
               color: "var(--muted)",
@@ -104,32 +131,32 @@ export default function SuggestionsPanel({ batches, onReload, countdown, onSugge
           >
             Suggestions appear here once recording starts.
           </div>
-        ) : (
-          batches.map((batch, batchIndex) => (
-            <div key={batch.id}>
-              {batch.suggestions.map((s, i) => (
-                <SuggestionCard
-                  key={i}
-                  suggestion={s}
-                  fresh={batchIndex === 0}
-                  onClick={onSuggestionClick}
-                />
-              ))}
-              <div
-                style={{
-                  fontSize: 10,
-                  color: "var(--muted)",
-                  textAlign: "center",
-                  padding: "6px 0",
-                  textTransform: "uppercase",
-                  letterSpacing: 1,
-                }}
-              >
-                — Batch {batch.id} · {batch.timestamp} —
-              </div>
-            </div>
-          ))
         )}
+
+        {batches.map((batch, batchIndex) => (
+          <div key={batch.id}>
+            {batch.suggestions.map((s, i) => (
+              <SuggestionCard
+                key={i}
+                suggestion={s}
+                fresh={batchIndex === 0}
+                onClick={onSuggestionClick}
+              />
+            ))}
+            <div
+              style={{
+                fontSize: 10,
+                color: "var(--muted)",
+                textAlign: "center",
+                padding: "6px 0",
+                textTransform: "uppercase",
+                letterSpacing: 1,
+              }}
+            >
+              — Batch {batches.length - batchIndex} · {batch.timestamp} —
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

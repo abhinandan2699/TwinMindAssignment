@@ -2,19 +2,27 @@
 
 import { useState, useEffect } from "react";
 import TranscriptPanel from "@/components/TranscriptPanel";
-import SuggestionsPanel, { SuggestionBatch } from "@/components/SuggestionsPanel";
+import SuggestionsPanel from "@/components/SuggestionsPanel";
 import ChatPanel, { ChatMessage } from "@/components/ChatPanel";
 import SettingsModal from "@/components/SettingsModal";
 import { Suggestion } from "@/components/SuggestionCard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
+import { useSuggestions } from "@/hooks/useSuggestions";
+import { DEFAULT_SUGGESTION_PROMPT } from "@/lib/defaults";
 
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [contextWindow, setContextWindow] = useState(3);
+  const [suggestionPrompt, setSuggestionPrompt] = useState(DEFAULT_SUGGESTION_PROMPT);
 
   useEffect(() => {
-    const stored = sessionStorage.getItem("groq_api_key");
-    if (stored) setApiKey(stored);
+    const key = sessionStorage.getItem("groq_api_key");
+    if (key) setApiKey(key);
+    const win = sessionStorage.getItem("suggestion_context_window");
+    if (win) setContextWindow(Number(win));
+    const prompt = sessionStorage.getItem("suggestion_prompt");
+    if (prompt) setSuggestionPrompt(prompt);
   }, []);
 
   function saveApiKey(key: string) {
@@ -22,20 +30,40 @@ export default function Home() {
     sessionStorage.setItem("groq_api_key", key);
   }
 
+  function saveContextWindow(n: number) {
+    setContextWindow(n);
+    sessionStorage.setItem("suggestion_context_window", String(n));
+  }
+
+  function saveSuggestionPrompt(s: string) {
+    setSuggestionPrompt(s);
+    sessionStorage.setItem("suggestion_prompt", s);
+  }
+
   const recorder = useAudioRecorder(apiKey || null);
 
-  // Placeholder state for middle and right columns (built in future steps).
-  const batches: SuggestionBatch[] = [];
+  const suggestions = useSuggestions({
+    transcript: recorder.transcript,
+    isRecording: recorder.isRecording,
+    apiKey: apiKey || null,
+    contextWindow,
+    suggestionPrompt,
+  });
+
+  // Placeholder state for chat (built in next step).
   const messages: ChatMessage[] = [];
-  function handleReload() {}
-  function handleSuggestionClick(s: Suggestion) { void s; }
   function handleChatSend(t: string) { void t; }
+
+  function handleSuggestionClick(s: Suggestion) {
+    // Chat integration wired in next step.
+    void s;
+  }
 
   function handleExport() {
     const session = {
       exportedAt: new Date().toISOString(),
       transcript: recorder.transcript,
-      suggestions: [],
+      suggestions: suggestions.batches,
       chat: [],
     };
     const blob = new Blob([JSON.stringify(session, null, 2)], { type: "application/json" });
@@ -115,9 +143,11 @@ export default function Home() {
           onOpenSettings={() => setSettingsOpen(true)}
         />
         <SuggestionsPanel
-          batches={batches}
-          onReload={handleReload}
-          countdown={30}
+          batches={suggestions.batches}
+          onReload={suggestions.manualReload}
+          countdown={suggestions.countdown}
+          isLoading={suggestions.isLoading}
+          isRecording={recorder.isRecording}
           onSuggestionClick={handleSuggestionClick}
         />
         <ChatPanel messages={messages} onSend={handleChatSend} />
@@ -128,6 +158,10 @@ export default function Home() {
         apiKey={apiKey}
         onSave={saveApiKey}
         onClose={() => setSettingsOpen(false)}
+        contextWindow={contextWindow}
+        onSaveContextWindow={saveContextWindow}
+        suggestionPrompt={suggestionPrompt}
+        onSaveSuggestionPrompt={saveSuggestionPrompt}
       />
     </div>
   );
