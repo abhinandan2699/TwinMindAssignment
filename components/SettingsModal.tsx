@@ -11,6 +11,8 @@ interface Props {
   onSaveContextWindow: (n: number) => void;
   suggestionPrompt: string;
   onSaveSuggestionPrompt: (s: string) => void;
+  chatPrompt: string;
+  onSaveChatPrompt: (s: string) => void;
 }
 
 export default function SettingsModal({
@@ -22,10 +24,13 @@ export default function SettingsModal({
   onSaveContextWindow,
   suggestionPrompt,
   onSaveSuggestionPrompt,
+  chatPrompt,
+  onSaveChatPrompt,
 }: Props) {
   const [draftKey, setDraftKey] = useState(apiKey);
   const [draftWindow, setDraftWindow] = useState(contextWindow);
   const [draftPrompt, setDraftPrompt] = useState(suggestionPrompt);
+  const [draftChatPrompt, setDraftChatPrompt] = useState(chatPrompt);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,14 +38,16 @@ export default function SettingsModal({
       setDraftKey(apiKey);
       setDraftWindow(contextWindow);
       setDraftPrompt(suggestionPrompt);
+      setDraftChatPrompt(chatPrompt);
       setTimeout(() => inputRef.current?.focus(), 50);
     }
-  }, [isOpen, apiKey, contextWindow, suggestionPrompt]);
+  }, [isOpen, apiKey, contextWindow, suggestionPrompt, chatPrompt]);
 
   function handleSave() {
     onSave(draftKey.trim());
     onSaveContextWindow(Math.max(1, Math.min(10, draftWindow)));
     onSaveSuggestionPrompt(draftPrompt.trim() || suggestionPrompt);
+    onSaveChatPrompt(draftChatPrompt.trim() || chatPrompt);
     onClose();
   }
 
@@ -162,6 +169,20 @@ export default function SettingsModal({
             />
             <div style={hint}>
               System prompt sent to the model on every suggestion refresh.
+            </div>
+          </label>
+
+          {/* Chat prompt */}
+          <label style={{ display: "block" }}>
+            <div style={fieldLabel}>Chat system prompt</div>
+            <textarea
+              value={draftChatPrompt}
+              onChange={(e) => setDraftChatPrompt(e.target.value)}
+              rows={6}
+              style={{ ...inputStyle, resize: "vertical", fontFamily: "inherit", lineHeight: 1.5 }}
+            />
+            <div style={hint}>
+              System prompt used when answering questions in the chat panel.
             </div>
           </label>
 

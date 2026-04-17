@@ -3,26 +3,30 @@
 import { useState, useEffect } from "react";
 import TranscriptPanel from "@/components/TranscriptPanel";
 import SuggestionsPanel from "@/components/SuggestionsPanel";
-import ChatPanel, { ChatMessage } from "@/components/ChatPanel";
+import ChatPanel from "@/components/ChatPanel";
 import SettingsModal from "@/components/SettingsModal";
 import { Suggestion } from "@/components/SuggestionCard";
 import { useAudioRecorder } from "@/hooks/useAudioRecorder";
 import { useSuggestions } from "@/hooks/useSuggestions";
-import { DEFAULT_SUGGESTION_PROMPT } from "@/lib/defaults";
+import { useChat } from "@/hooks/useChat";
+import { DEFAULT_SUGGESTION_PROMPT, DEFAULT_CHAT_PROMPT } from "@/lib/defaults";
 
 export default function Home() {
   const [apiKey, setApiKey] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [contextWindow, setContextWindow] = useState(3);
   const [suggestionPrompt, setSuggestionPrompt] = useState(DEFAULT_SUGGESTION_PROMPT);
+  const [chatPrompt, setChatPrompt] = useState(DEFAULT_CHAT_PROMPT);
 
   useEffect(() => {
     const key = sessionStorage.getItem("groq_api_key");
     if (key) setApiKey(key);
     const win = sessionStorage.getItem("suggestion_context_window");
     if (win) setContextWindow(Number(win));
-    const prompt = sessionStorage.getItem("suggestion_prompt");
-    if (prompt) setSuggestionPrompt(prompt);
+    const sPrompt = sessionStorage.getItem("suggestion_prompt");
+    if (sPrompt) setSuggestionPrompt(sPrompt);
+    const cPrompt = sessionStorage.getItem("chat_prompt");
+    if (cPrompt) setChatPrompt(cPrompt);
   }, []);
 
   function saveApiKey(key: string) {
@@ -40,6 +44,11 @@ export default function Home() {
     sessionStorage.setItem("suggestion_prompt", s);
   }
 
+  function saveChatPrompt(s: string) {
+    setChatPrompt(s);
+    sessionStorage.setItem("chat_prompt", s);
+  }
+
   const recorder = useAudioRecorder(apiKey || null);
 
   const suggestions = useSuggestions({
@@ -50,13 +59,14 @@ export default function Home() {
     suggestionPrompt,
   });
 
-  // Placeholder state for chat (built in next step).
-  const messages: ChatMessage[] = [];
-  function handleChatSend(t: string) { void t; }
+  const chat = useChat({
+    transcript: recorder.transcript,
+    apiKey: apiKey || null,
+    chatPrompt,
+  });
 
   function handleSuggestionClick(s: Suggestion) {
-    // Chat integration wired in next step.
-    void s;
+    chat.sendMessage(s.text, s.type);
   }
 
   function handleExport() {
@@ -64,7 +74,7 @@ export default function Home() {
       exportedAt: new Date().toISOString(),
       transcript: recorder.transcript,
       suggestions: suggestions.batches,
-      chat: [],
+      chat: chat.messages,
     };
     const blob = new Blob([JSON.stringify(session, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -150,7 +160,11 @@ export default function Home() {
           isRecording={recorder.isRecording}
           onSuggestionClick={handleSuggestionClick}
         />
-        <ChatPanel messages={messages} onSend={handleChatSend} />
+        <ChatPanel
+          messages={chat.messages}
+          isStreaming={chat.isStreaming}
+          onSend={chat.sendMessage}
+        />
       </div>
 
       <SettingsModal
@@ -162,6 +176,8 @@ export default function Home() {
         onSaveContextWindow={saveContextWindow}
         suggestionPrompt={suggestionPrompt}
         onSaveSuggestionPrompt={saveSuggestionPrompt}
+        chatPrompt={chatPrompt}
+        onSaveChatPrompt={saveChatPrompt}
       />
     </div>
   );

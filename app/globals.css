@@ -54,6 +54,11 @@ body {
   to   { transform: rotate(360deg); }
 }
 
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
 .recording-pulse {
   animation: pulse-ring 1.4s infinite;
 }
@@ -61,3 +66,18 @@ body {
 .transcript-line-new {
   animation: fadein 0.4s ease-out;
 }
+
+.md-body { line-height: 1.6; }
+.md-body p  { margin: 0 0 8px; }
+.md-body ul, .md-body ol { margin: 0 0 8px; padding-left: 20px; }
+.md-body li { margin-bottom: 3px; }
+.md-body h1 { font-size: 15px; font-weight: 600; margin: 0 0 6px; }
+.md-body h2 { font-size: 14px; font-weight: 600; margin: 12px 0 6px; }
+.md-body h3 { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+.md-body strong { color: var(--text); }
+.md-body code { background: var(--bg); padding: 1px 5px; border-radius: 3px; font-size: 12px; }
+.md-body table { border-collapse: collapse; width: 100%; margin-bottom: 10px; font-size: 12px; }
+.md-body th { border: 1px solid var(--border); padding: 5px 8px; background: var(--bg); text-align: left; }
+.md-body td { border: 1px solid var(--border); padding: 5px 8px; vertical-align: top; }
+.md-body blockquote { border-left: 3px solid var(--accent); margin: 0 0 8px; padding-left: 10px; color: var(--muted); }
+.md-body hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }

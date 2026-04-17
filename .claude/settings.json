@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node -e \"const m = require\\('react-markdown'\\); console.log\\(typeof m.default, Object.keys\\(m\\)\\)\")",
+      "Bash(npm uninstall *)"
+    ]
+  }
+}
